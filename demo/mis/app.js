@@ -122,21 +122,49 @@ function BromcomFullMIS(){
 
   /* ---------------- Sidebar ---------------- */
   const Sidebar=()=>(
-    <div className="w-64 bg-blue-700 text-white h-screen p-4 flex flex-col">
+    <div className="w-64 bg-blue-700 text-white h-screen p-4 flex flex-col overflow-auto">
       <div className="text-2xl font-bold mb-4">AegisSchool</div>
-      {[["dashboard","students","attendance","behaviour","detentions","grades","timetable","reports","pa"]][0].map(pn=>
-        <button key={pn} className={`w-full text-left p-2 rounded mb-1 ${page===pn?"bg-blue-900":""}`} onClick={()=>setPage(pn)}>
+      {["dashboard","students","attendance","behaviour","detentions","grades","timetable","reports","pa"].map(pn=>
+        <button key={pn} className={`w-full text-left p-2 rounded mb-1 text-sm ${page===pn?"bg-blue-900":"hover:bg-blue-600"}`} onClick={()=>setPage(pn)}>
           {pn.charAt(0).toUpperCase()+pn.slice(1)}
         </button>
       )}
-      <div className="mt-auto text-sm">
-        <div>Signed in: <strong>{current?.user}</strong> ({current?.role})</div>
-        <button className="mt-2 w-full bg-red-500 p-2 rounded" onClick={doLogout}>Logout</button>
+      <div className="mt-auto text-xs">
+        <div>User: <strong>{current?.user}</strong></div>
+        <div className="text-gray-300 mb-2">{current?.role}</div>
+        <button className="w-full bg-red-500 p-2 rounded text-sm" onClick={doLogout}>Logout</button>
       </div>
     </div>
   );
 
+  /* ---------------- Auth UI ---------------- */
+  const AuthPage=()=>{
+    const [u,setU]=useState("");
+    const [p,setP]=useState("");
+    const [mode,setMode]=useState("login");
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-blue-800">
+        <div className="bg-white p-8 rounded shadow-lg w-96">
+          <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">AegisSchool MIS</h1>
+          <div className="flex gap-2 mb-4">
+            <button className={`flex-1 p-2 rounded ${mode==='login'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setMode('login')}>Login</button>
+            <button className={`flex-1 p-2 rounded ${mode==='signup'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setMode('signup')}>Sign Up</button>
+          </div>
+          <input className="w-full border p-2 mb-2" placeholder="Username" value={u} onChange={e=>setU(e.target.value)} />
+          <input className="w-full border p-2 mb-4" placeholder="Password" type="password" value={p} onChange={e=>setP(e.target.value)} />
+          <button className="w-full bg-blue-600 text-white p-2 rounded font-semibold" onClick={()=>mode==='login'?doLogin(u,p):doSignup(u,p,'teacher')}>
+            {mode==='login'?'Login':'Sign Up'}
+          </button>
+          <div className="mt-4 text-sm text-gray-600">
+            <div>Demo: admin / admin</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   /* ---------------- Render ---------------- */
+  if(!current) return <AuthPage />;
   return (
     <div className="flex">
       <Sidebar />
@@ -353,17 +381,16 @@ function TimetablePage({timetable,updateLesson}){
 function ReportsPage({exportAttendanceCSV,exportBehaviourCSV,exportDetentionsCSV,students,attendance,behaviour}){
   return (
     <div className="bg-white p-4 rounded shadow">
-      <h3 className="font-semibold mb-2">Reports & Exports</h3>
-      <div className="flex gap-2 mb-4">
-        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportAttendanceCSV}>Export Attendance CSV</button>
-        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportBehaviourCSV}>Export Behaviour CSV</button>
-        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportDetentionsCSV}>Export Detentions CSV</button>
+      <h3 className="font-semibold mb-4 text-lg">Reports & Exports</h3>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <button className="bg-gray-700 text-white p-2 rounded">📊 Export Attendance CSV</button>
+        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportBehaviourCSV}>📋 Export Behaviour CSV</button>
+        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportDetentionsCSV}>📝 Export Detentions CSV</button>
       </div>
-      <div>
-        <h4 className="font-semibold">Quick overview</h4>
-        <div>Students: {students.length}</div>
-        <div>Behaviour events: {behaviour.length}</div>
-        <div>Attendance days logged: {Object.keys(attendance).length}</div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-blue-50 p-3 rounded"><div className="font-semibold text-2xl">{students.length}</div><div className="text-sm text-gray-600">Students</div></div>
+        <div className="bg-yellow-50 p-3 rounded"><div className="font-semibold text-2xl">{behaviour.length}</div><div className="text-sm text-gray-600">Behaviour events</div></div>
+        <div className="bg-purple-50 p-3 rounded"><div className="font-semibold text-2xl">{Object.keys(attendance).length}</div><div className="text-sm text-gray-600">Attendance days</div></div>
       </div>
     </div>
   );
@@ -398,4 +425,9 @@ function DashboardPage({students,behaviour,detentionLog,attendance}){
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<BromcomFullMIS />);
+try {
+  ReactDOM.createRoot(document.getElementById("root")).render(<BromcomFullMIS />);
+} catch(e) {
+  console.error("Failed to mount app:", e);
+  document.getElementById("root").innerHTML = `<div style="color: red; padding: 20px;">Error loading app: ${e.message}</div>`;
+}
