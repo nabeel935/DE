@@ -18,6 +18,12 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <!-- App code (transpiled by Babel) -->
-  <script type="text/babel" data-type="module" src="app.js"></script>
+  <script type="text/babel" src="app.js"></script>
+  <script>
+    window.addEventListener('error', (e) => {
+      console.error('Error:', e.error);
+      document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px; font-family: monospace;">Error loading app:<br/>' + e.error?.message + '</div>';
+    });
+  </script>
 </body>
 </html>
