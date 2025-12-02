@@ -9,79 +9,304 @@
 <body class="bg-gray-100">
   <div id="root"></div>
 
-  <!-- React / ReactDOM (UMD) -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel Standalone -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <script type="text/babel">
+  <script>
     const { useState, useEffect } = React;
     const e = React.createElement;
-
-    function LoginPage({ onLogin }) {
-      const [u, setU] = useState("");
-      const [p, setP] = useState("");
-      return e('div', { className: "flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-blue-800" },
-        e('div', { className: "bg-white p-8 rounded shadow-lg w-96" },
-          e('h1', { className: "text-3xl font-bold mb-6 text-center text-blue-700" }, "AegisSchool MIS"),
-          e('input', { className: "w-full border p-2 mb-2", placeholder: "Username", value: u, onChange: e=>setU(e.target.value) }),
-          e('input', { className: "w-full border p-2 mb-4", placeholder: "Password", type: "password", value: p, onChange: e=>setP(e.target.value) }),
-          e('button', { className: "w-full bg-blue-600 text-white p-2 rounded font-semibold", onClick: ()=>onLogin(u,p) }, "Login"),
-          e('div', { className: "mt-4 text-sm text-gray-600 text-center" }, "Demo: admin / admin")
-        )
-      );
-    }
-
-    function Dashboard() {
-      const [page, setPage] = useState("dashboard");
-      const [students, setStudents] = useState([]);
-      const [name, setName] = useState("");
-      
-      return e('div', { className: "flex" },
-        e('div', { className: "w-64 bg-blue-700 text-white h-screen p-4" },
-          e('div', { className: "text-2xl font-bold mb-4" }, "AegisSchool"),
-          ["dashboard","students","attendance","behaviour"].map(pn =>
-            e('button', { key: pn, className: `w-full text-left p-2 rounded mb-1 ${page===pn?"bg-blue-900":""}`, onClick: ()=>setPage(pn) },
-              pn.charAt(0).toUpperCase()+pn.slice(1)
-            )
-          )
-        ),
-        e('div', { className: "flex-1 p-6 bg-gray-100" },
-          e('h1', { className: "text-3xl font-bold mb-4" }, page.charAt(0).toUpperCase()+page.slice(1)),
-          page === "dashboard" && e('div', { className: "grid grid-cols-3 gap-4" },
-            e('div', { className: "bg-white p-4 rounded shadow" }, "Students: ", e('strong', null, students.length))
-          ),
-          page === "students" && e('div', { className: "bg-white p-4 rounded shadow" },
-            e('div', { className: "flex gap-2 mb-4" },
-              e('input', { className: "border p-2 flex-1", placeholder: "Student name", value: name, onChange: e=>setName(e.target.value) }),
-              e('button', { className: "bg-blue-600 text-white p-2 rounded", onClick: ()=>{setStudents([...students,{id:Date.now(),name}]);setName("");} }, "Add")
-            ),
-            e('ul', null,
-              students.map(s=>e('li', { key: s.id, className: "p-2 border-t" }, s.name))
-            )
-          ),
-          page !== "dashboard" && page !== "students" && e('div', { className: "bg-white p-4 rounded shadow text-gray-500" },
-            page + " page coming soon..."
-          )
-        )
-      );
-    }
+    
+    const uid = () => Date.now() + Math.floor(Math.random()*1000);
+    const loadLS = (k,f) => { try { return JSON.parse(localStorage.getItem(k))||f } catch(e){return f} };
+    const saveLS = (k,v) => localStorage.setItem(k,JSON.stringify(v));
+    const csvDownload = (rows, filename) => {
+      const csv = rows.map(r=>r.map(c=>(`${c}`).replace(/\n/g,' ')).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+    };
 
     function App() {
-      const [logged, setLogged] = useState(false);
-      const handleLogin = (u, p) => {
-        if ((u === "admin" && p === "admin") || (u && p)) {
-          setLogged(true);
-        } else {
-          alert("Invalid credentials");
-        }
+      const [users,setUsers] = useState(()=>loadLS("users", [{id:uid(),user:"admin",pass:"admin",role:"admin"}]));
+      const [current,setCurrent] = useState(()=>loadLS("current",null));
+      const [students,setStudents] = useState(()=>loadLS("students",[]));
+      const [attendance,setAttendance] = useState(()=>loadLS("attendance",{}));
+      const [behaviour,setBehaviour] = useState(()=>loadLS("behaviour",[]));
+      const [grades,setGrades] = useState(()=>loadLS("grades",{}));
+      const [timetable,setTimetable] = useState(()=>loadLS("timetable",{
+        Monday:{P1:"Math",P2:"English",P3:"Physics",P4:"PE",P5:"History"},
+        Tuesday:{P1:"Math",P2:"Chemistry",P3:"RE",P4:"Art",P5:"Music"},
+        Wednesday:{P1:"English",P2:"Math",P3:"Biology",P4:"Drama",P5:"PSHE"},
+        Thursday:{P1:"Geography",P2:"Math",P3:"Computer",P4:"Science",P5:"DT"},
+        Friday:{P1:"Form",P2:"Assembly",P3:"Sport",P4:"History",P5:"Languages"}
+      }));
+      const [detentionLog,setDetentionLog] = useState(()=>loadLS("detentions",[]));
+      const [page,setPage] = useState("dashboard");
+
+      useEffect(()=>saveLS("users",users),[users]);
+      useEffect(()=>saveLS("current",current),[current]);
+      useEffect(()=>saveLS("students",students),[students]);
+      useEffect(()=>saveLS("attendance",attendance),[attendance]);
+      useEffect(()=>saveLS("behaviour",behaviour),[behaviour]);
+      useEffect(()=>saveLS("grades",grades),[grades]);
+      useEffect(()=>saveLS("timetable",timetable),[timetable]);
+      useEffect(()=>saveLS("detentions",detentionLog),[detentionLog]);
+
+      const doLogin=(u,p)=>{const f=users.find(x=>x.user===u&&x.pass===p);if(!f)return alert("Invalid");setCurrent(f);};
+      const doLogout=()=>{setCurrent(null);setPage("dashboard");};
+
+      const addStudent=(name,className="")=>{if(!name.trim())return;setStudents(prev=>[...prev,{id:uid(),name,className,points:0,detention:false}]);};
+      const removeStudent=id=>{if(!confirm("Remove student?"))return;setStudents(prev=>prev.filter(s=>s.id!==id));};
+
+      const markAttendance=(sid,period,status)=>{
+        const date=new Date().toISOString().split("T")[0];
+        const dayRec=attendance[date]?{...attendance[date]}:{};
+        const perRec=dayRec[period]?{...dayRec[period]}:{};
+        perRec[sid]=status;dayRec[period]=perRec;
+        setAttendance({...attendance,[date]:dayRec});
       };
-      return logged ? e(Dashboard) : e(LoginPage, { onLogin: handleLogin });
+
+      const addBehaviour=(sid,score,pointsDelta=0,note="")=>{
+        const rec={id:uid(),studentId:sid,score,pointsDelta,note,time:new Date().toISOString(),teacher:current?.user||"unknown"};
+        setBehaviour(prev=>[rec,...prev]);
+        setStudents(prev=>prev.map(s=>{
+          if(s.id!==sid)return s;
+          const newPoints=(s.points||0)+pointsDelta;
+          const triggersDetention=(score===2||score===4||newPoints<=-5);
+          if(triggersDetention&&!s.detention){
+            setDetentionLog(prev=>[{id:uid(),studentId:s.id,name:s.name,reason:`Behaviour score ${score}`,time:new Date().toLocaleString(),served:false},...prev]);
+          }
+          return {...s,points:newPoints,detention:triggersDetention};
+        }));
+      };
+
+      const markDetentionServed=did=>{
+        setDetentionLog(prev=>prev.map(d=>d.id===did?{...d,served:true}:d));
+        const det=detentionLog.find(d=>d.id===did);
+        if(det){setStudents(prev=>prev.map(s=>s.id===det.studentId?{...s,detention:false}:s));}
+      };
+
+      const recordGrade=(sid,sub,mark)=>setGrades(prev=>({...prev,[sid]:{...(prev[sid]||{}),[sub]:mark}}));
+
+      const updateLesson=(day,period,value)=>setTimetable(prev=>({...prev,[day]:{...prev[day],[period]:value}}));
+
+      const exportAttendanceCSV=()=>{
+        const rows=[["date","period","student","status"]];
+        for(const [date,dayRec] of Object.entries(attendance)){
+          for(const [period,perRec] of Object.entries(dayRec||{})){
+            for(const s of students)rows.push([date,period,s.name,perRec[s.id]||"absent"]);
+          }
+        }csvDownload(rows,"attendance.csv");
+      };
+
+      const exportBehaviourCSV=()=>{
+        const rows=[["student","score","pointsDelta","note","time","teacher"]];
+        behaviour.forEach(b=>{const name=students.find(s=>s.id===b.studentId)?.name||b.studentId;rows.push([name,b.score,b.pointsDelta||0,b.note,b.time,b.teacher]);});
+        csvDownload(rows,"behaviour.csv");
+      };
+
+      const exportDetentionsCSV=()=>{
+        const rows=[["student","reason","time","served"]];
+        detentionLog.forEach(d=>{rows.push([d.name,d.reason,d.time,d.served?"Yes":"No"]);});
+        csvDownload(rows,"detentions.csv");
+      };
+
+      if(!current) {
+        const [u,setU]=useState("");
+        const [p,setP]=useState("");
+        return e('div',{className:"flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-blue-800"},
+          e('div',{className:"bg-white p-8 rounded shadow-lg w-96"},
+            e('h1',{className:"text-3xl font-bold mb-6 text-center text-blue-700"},"AegisSchool MIS"),
+            e('input',{className:"w-full border p-2 mb-2",placeholder:"Username",value:u,onChange:x=>setU(x.target.value)}),
+            e('input',{className:"w-full border p-2 mb-4",placeholder:"Password",type:"password",value:p,onChange:x=>setP(x.target.value)}),
+            e('button',{className:"w-full bg-blue-600 text-white p-2 rounded font-semibold",onClick:()=>doLogin(u,p)},"Login"),
+            e('div',{className:"mt-4 text-sm text-gray-600 text-center"},"Demo: admin / admin")
+          )
+        );
+      }
+
+      const [name,setName]=useState("");
+      const [cls,setCls]=useState("");
+      const [sid,setSid]=useState(students[0]?.id||"");
+      const [score,setScore]=useState(3);
+      const [points,setPoints]=useState(0);
+      const [note,setNote]=useState("");
+      const [sub,setSub]=useState("Math");
+      const [mark,setMark]=useState("");
+      const [period,setPeriod]=useState("P1");
+      const [announcement,setAnnouncement]=useState("");
+      
+      const date=new Date().toISOString().split("T")[0];
+
+      const renderPage=()=>{
+        if(page==="dashboard") return e('div',{className:"grid grid-cols-4 gap-4"},
+          e('div',{className:"bg-white p-4 rounded shadow"},e('div',{className:"text-2xl font-bold"},"👥 "+students.length),e('div',{className:"text-sm text-gray-600"},"Students")),
+          e('div',{className:"bg-white p-4 rounded shadow"},e('div',{className:"text-2xl font-bold"},"📋 "+behaviour.length),e('div',{className:"text-sm text-gray-600"},"Behaviour")),
+          e('div',{className:"bg-white p-4 rounded shadow"},e('div',{className:"text-2xl font-bold"},"🔒 "+detentionLog.filter(d=>!d.served).length),e('div',{className:"text-sm text-gray-600"},"Open Detentions")),
+          e('div',{className:"bg-white p-4 rounded shadow"},e('div',{className:"text-2xl font-bold"},"📅 "+Object.keys(attendance).length),e('div',{className:"text-sm text-gray-600"},"Attendance Days"))
+        );
+
+        if(page==="students") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('div',{className:"flex gap-2 mb-4"},
+            e('input',{className:"border p-2 flex-1",placeholder:"Name",value:name,onChange:x=>setName(x.target.value)}),
+            e('input',{className:"border p-2 w-40",placeholder:"Class",value:cls,onChange:x=>setCls(x.target.value)}),
+            e('button',{className:"bg-blue-600 text-white p-2 rounded",onClick:()=>{addStudent(name,cls);setName("");setCls("");}},"Add")
+          ),
+          e('table',{className:"w-full text-sm"},
+            e('thead',null,e('tr',null,e('th',{className:"text-left p-2"},"Name"),e('th',{className:"text-left p-2"},"Class"),e('th',{className:"text-left p-2"},"Points"),e('th',{className:"text-left p-2"},"Action"))),
+            e('tbody',null,students.map(s=>e('tr',{key:s.id,className:"border-t"},
+              e('td',{className:"p-2"},s.name),
+              e('td',{className:"p-2"},s.className),
+              e('td',{className:"p-2"},s.points||0),
+              e('td',{className:"p-2"},e('button',{className:"text-red-600 text-sm",onClick:()=>removeStudent(s.id)},"Remove"))
+            )))
+          )
+        );
+
+        if(page==="attendance") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('div',{className:"mb-4 pb-2 border-b"},
+            e('label',{className:"font-semibold"},"Date: "),e('span',{className:"ml-2"},date),
+            e('select',{value:period,onChange:x=>setPeriod(x.target.value),className:"border p-1 ml-4"},
+              ["P1","P2","P3","P4","P5"].map(p=>e('option',{key:p,value:p},p))
+            )
+          ),
+          e('table',{className:"w-full text-sm"},
+            e('thead',null,e('tr',null,e('th',{className:"text-left p-2"},"Student"),e('th',{className:"text-left p-2"},"Status"))),
+            e('tbody',null,students.map(s=>{
+              const dayRec=(attendance[date]||{});
+              const perRec=(dayRec[period]||{});
+              const status=perRec[s.id];
+              return e('tr',{key:s.id,className:"border-t"},
+                e('td',{className:"p-2"},s.name),
+                e('td',{className:"p-2 space-x-2"},
+                  e('button',{className:`p-1 rounded text-xs ${status==='present'?'bg-green-400':'bg-gray-200'}`,onClick:()=>markAttendance(s.id,period,'present')},"✓ Present"),
+                  e('button',{className:`p-1 rounded text-xs ${status==='absent'?'bg-red-400':'bg-gray-200'}`,onClick:()=>markAttendance(s.id,period,'absent')},"✗ Absent"),
+                  e('button',{className:`p-1 rounded text-xs ${status==='late'?'bg-yellow-400':'bg-gray-200'}`,onClick:()=>markAttendance(s.id,period,'late')},"⏰ Late")
+                )
+              );
+            }))
+          )
+        );
+
+        if(page==="behaviour") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('div',{className:"flex gap-2 mb-4 flex-wrap"},
+            e('select',{value:sid,onChange:x=>setSid(x.target.value),className:"border p-2 text-sm"},
+              e('option',{value:""},"Select student..."),
+              students.map(s=>e('option',{key:s.id,value:s.id},s.name))
+            ),
+            e('select',{value:score,onChange:x=>setScore(Number(x.target.value)),className:"border p-2 text-sm"},
+              [1,2,3,4,5].map(n=>e('option',{key:n,value:n},"Score "+n))
+            ),
+            e('input',{className:"border p-2 w-24 text-sm",type:"number",value:points,onChange:x=>setPoints(Number(x.target.value)),placeholder:"Pts"}),
+            e('input',{className:"border p-2 flex-1 text-sm",placeholder:"Note",value:note,onChange:x=>setNote(x.target.value)}),
+            e('button',{className:"bg-blue-600 text-white p-2 rounded text-sm",onClick:()=>{if(!sid)return alert("Select student");addBehaviour(sid,score,points,note);setNote("");setPoints(0);}},"Add")
+          ),
+          e('div',null,
+            e('h4',{className:"font-semibold mb-2"},"Recent Events"),
+            e('ul',{className:"space-y-1"},behaviour.slice(0,10).map(b=>{
+              const name=students.find(s=>s.id===b.studentId)?.name||"Unknown";
+              return e('li',{key:b.id,className:"border-t py-1 text-sm"},
+                e('span',{className:"font-semibold"},name),
+                e('span',{className:"text-gray-600"}," — Score "+b.score+" ("+b.pointsDelta+") — "+b.note)
+              );
+            }))
+          )
+        );
+
+        if(page==="detentions") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('table',{className:"w-full text-sm"},
+            e('thead',null,e('tr',null,e('th',{className:"text-left p-2"},"Student"),e('th',{className:"text-left p-2"},"Reason"),e('th',{className:"text-left p-2"},"Served"),e('th',{className:"p-2"},"Action"))),
+            e('tbody',null,detentionLog.map(d=>e('tr',{key:d.id,className:"border-t"},
+              e('td',{className:"p-2"},d.name),
+              e('td',{className:"p-2"},"Behaviour"),
+              e('td',{className:"p-2"},d.served?"✓":"✗"),
+              e('td',{className:"p-2"},!d.served && e('button',{className:"text-green-600 text-sm",onClick:()=>markDetentionServed(d.id)},"Served"))
+            )))
+          )
+        );
+
+        if(page==="grades") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('div',{className:"flex gap-2 mb-4"},
+            e('select',{value:sid,onChange:x=>setSid(x.target.value),className:"border p-2 text-sm"},
+              e('option',{value:""},"Select student..."),
+              students.map(s=>e('option',{key:s.id,value:s.id},s.name))
+            ),
+            e('input',{className:"border p-2 text-sm flex-1",value:sub,onChange:x=>setSub(x.target.value),placeholder:"Subject"}),
+            e('input',{className:"border p-2 w-24 text-sm",value:mark,onChange:x=>setMark(x.target.value),placeholder:"Mark"}),
+            e('button',{className:"bg-blue-600 text-white p-2 rounded text-sm",onClick:()=>{if(!sid)return;recordGrade(sid,sub,mark);setMark("");}},"Save")
+          ),
+          e('table',{className:"w-full text-sm"},
+            e('thead',null,e('tr',null,e('th',{className:"text-left p-2"},"Student"),e('th',{className:"text-left p-2"},"Subject"),e('th',{className:"text-left p-2"},"Mark"))),
+            e('tbody',null,students.map(s=>{
+              const gs=grades[s.id]||{};
+              return Object.keys(gs).map(subj=>e('tr',{key:s.id+subj,className:"border-t"},
+                e('td',{className:"p-2"},s.name),e('td',{className:"p-2"},subj),e('td',{className:"p-2"},gs[subj])
+              ));
+            }))
+          )
+        );
+
+        if(page==="timetable") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('div',{className:"grid grid-cols-2 gap-4"},
+            Object.keys(timetable).map(day=>e('div',{key:day,className:"border p-3 rounded"},
+              e('div',{className:"font-bold mb-2 text-blue-700"},day),
+              e('div',{className:"space-y-2"},
+                Object.entries(timetable[day]).map(([period,lesson])=>e('div',{key:period,className:"flex gap-2"},
+                  e('span',{className:"font-semibold w-12 text-sm"},period),
+                  e('input',{className:"border p-1 text-sm flex-1",value:lesson,onChange:x=>updateLesson(day,period,x.target.value)})
+                ))
+              )
+            ))
+          )
+        );
+
+        if(page==="reports") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('div',{className:"flex gap-2 mb-4 flex-wrap"},
+            e('button',{className:"bg-gray-700 text-white p-2 rounded text-sm",onClick:exportAttendanceCSV},"📊 Export Attendance"),
+            e('button',{className:"bg-gray-700 text-white p-2 rounded text-sm",onClick:exportBehaviourCSV},"📋 Export Behaviour"),
+            e('button',{className:"bg-gray-700 text-white p-2 rounded text-sm",onClick:exportDetentionsCSV},"📝 Export Detentions")
+          ),
+          e('div',{className:"grid grid-cols-3 gap-4"},
+            e('div',{className:"bg-blue-50 p-4 rounded text-sm"},e('div',{className:"text-3xl font-bold text-blue-600"},students.length),e('div',{className:"text-gray-600"},"Total Students")),
+            e('div',{className:"bg-yellow-50 p-4 rounded text-sm"},e('div',{className:"text-3xl font-bold text-yellow-600"},behaviour.length),e('div',{className:"text-gray-600"},"Behaviour Events")),
+            e('div',{className:"bg-purple-50 p-4 rounded text-sm"},e('div',{className:"text-3xl font-bold text-purple-600"},Object.keys(attendance).length),e('div',{className:"text-gray-600"},"Attendance Days"))
+          )
+        );
+
+        if(page==="pa") return e('div',{className:"bg-white p-4 rounded shadow"},
+          e('textarea',{className:"w-full border p-2 mb-2 rounded",rows:4,value:announcement,onChange:x=>setAnnouncement(x.target.value),placeholder:"Announcement text..."}),
+          e('button',{className:"bg-blue-600 text-white p-2 rounded",onClick:()=>{if(!announcement)return alert("Enter text");const u=new SpeechSynthesisUtterance(announcement);speechSynthesis.speak(u);alert("Announcement sent!");}},"📢 Send")
+        );
+
+        return e('div',null,"Select a page");
+      };
+
+      return e('div',{className:"flex h-screen"},
+        e('div',{className:"w-64 bg-blue-700 text-white p-4 overflow-auto flex flex-col"},
+          e('div',{className:"text-2xl font-bold mb-4"},"AegisSchool"),
+          e('div',{className:"space-y-1 flex-1"},
+            ["dashboard","students","attendance","behaviour","detentions","grades","timetable","reports","pa"].map(pn=>
+              e('button',{key:pn,className:`w-full text-left p-2 rounded mb-1 text-sm transition ${page===pn?"bg-blue-900":"hover:bg-blue-600"}`,onClick:()=>setPage(pn)},
+                {dashboard:"📊 Dashboard",students:"👥 Students",attendance:"📍 Attendance",behaviour:"⚡ Behaviour",detentions:"🔒 Detentions",grades:"📈 Grades",timetable:"📅 Timetable",reports:"📋 Reports",pa:"📢 PA"}[pn]
+              )
+            )
+          ),
+          e('div',{className:"pt-4 border-t border-blue-600 text-xs"},
+            e('div',{className:"text-blue-200 mb-2"},"Admin: "+current.user),
+            e('button',{className:"w-full bg-red-500 hover:bg-red-600 p-2 rounded text-sm",onClick:doLogout},"Logout")
+          )
+        ),
+        e('div',{className:"flex-1 p-6 overflow-auto bg-gray-50"},
+          e('h1',{className:"text-3xl font-bold mb-4 text-gray-800"},
+            {dashboard:"Dashboard",students:"Students",attendance:"Attendance",behaviour:"Behaviour",detentions:"Detentions",grades:"Grades",timetable:"Timetable",reports:"Reports",pa:"PA & Announcements"}[page]
+          ),
+          renderPage()
+        )
+      );
     }
 
     const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(e(App));
+    root.render(React.createElement(App));
   </script>
 </body>
 </html>
