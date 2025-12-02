@@ -161,20 +161,241 @@ function BromcomFullMIS(){
 function PageRenderer(props){
   const {page} = props;
   switch(page){
-    case "students": return <div>(Students page placeholder)</div>;
-    case "attendance": return <div>(Attendance page placeholder)</div>;
-    case "behaviour": return <div>(Behaviour page placeholder)</div>;
-    case "detentions": return <div>(Detentions page placeholder)</div>;
-    case "grades": return <div>(Grades page placeholder)</div>;
-    case "timetable": return <div>(Timetable page placeholder)</div>;
-    case "reports": return <div>(Reports page placeholder)</div>;
-    case "pa": return <div>(PA / Announcements page placeholder)</div>;
-    case "dashboard": return <div>(Dashboard page placeholder)</div>;
+    case "students": return <StudentsPage {...props}/>;
+    case "attendance": return <AttendancePage {...props}/>;
+    case "behaviour": return <BehaviourPage {...props}/>;
+    case "detentions": return <DetentionsPage {...props}/>;
+    case "grades": return <GradesPage {...props}/>;
+    case "timetable": return <TimetablePage {...props}/>;
+    case "reports": return <ReportsPage {...props}/>;
+    case "pa": return <PAPage {...props}/>;
+    case "dashboard": return <DashboardPage {...props}/>;
     default: return <div>Select a page</div>;
   }
 }
 
 /* ---------------- Pages ---------------- */
-/* The detailed page JSX was omitted for brevity in the original. Placeholders are used here so the app mounts cleanly. */
+
+function StudentsPage({students,addStudent,updateStudent,removeStudent}){
+  const [name,setName]=useState("");
+  const [cls,setCls]=useState("");
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <div className="flex gap-2 mb-4">
+        <input className="border p-2 flex-1" placeholder="Student name" value={name} onChange={e=>setName(e.target.value)} />
+        <input className="border p-2 w-40" placeholder="Class" value={cls} onChange={e=>setCls(e.target.value)} />
+        <button className="bg-blue-600 text-white p-2 rounded" onClick={()=>{addStudent(name,cls);setName("");setCls("")}}>Add</button>
+      </div>
+      <table className="w-full text-left">
+        <thead><tr><th>Name</th><th>Class</th><th>Points</th><th>Detention</th><th></th></tr></thead>
+        <tbody>
+          {students.map(s=> (
+            <tr key={s.id} className="border-t">
+              <td><input className="p-1" value={s.name} onChange={e=>updateStudent(s.id,{name:e.target.value})} /></td>
+              <td><input className="p-1 w-32" value={s.className||""} onChange={e=>updateStudent(s.id,{className:e.target.value})} /></td>
+              <td>{s.points||0}</td>
+              <td>{s.detention?"Yes":"No"}</td>
+              <td><button className="text-red-600" onClick={()=>removeStudent(s.id)}>Remove</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AttendancePage({students,attendance,markAttendance}){
+  const periods=["P1","P2","P3","P4","P5"];
+  const [period,setPeriod]=useState(periods[0]);
+  const date=new Date().toISOString().split("T")[0];
+  const dayRec=(attendance[date]||{});
+  const perRec=(dayRec[period]||{});
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <div className="flex items-center gap-2 mb-4">
+        <label className="font-semibold">Date:</label>
+        <div>{date}</div>
+        <label className="font-semibold ml-4">Period:</label>
+        <select value={period} onChange={e=>setPeriod(e.target.value)} className="border p-1">
+          {periods.map(p=><option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+      <table className="w-full text-left">
+        <thead><tr><th>Name</th><th>Status</th></tr></thead>
+        <tbody>
+          {students.map(s=> (
+            <tr key={s.id} className="border-t">
+              <td>{s.name}</td>
+              <td className="space-x-2">
+                <button className={`p-1 rounded ${perRec[s.id]==='present'?'bg-green-200':''}`} onClick={()=>markAttendance(s.id,period,'present')}>Present</button>
+                <button className={`p-1 rounded ${perRec[s.id]==='absent'?'bg-red-200':''}`} onClick={()=>markAttendance(s.id,period,'absent')}>Absent</button>
+                <button className={`p-1 rounded ${perRec[s.id]==='late'?'bg-yellow-200':''}`} onClick={()=>markAttendance(s.id,period,'late')}>Late</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BehaviourPage({students,behaviour,addBehaviour}){
+  const [sid,setSid]=useState(students[0]?.id||"");
+  const [score,setScore]=useState(3);
+  const [points,setPoints]=useState(0);
+  const [note,setNote]=useState("");
+  useEffect(()=>{if(!sid && students[0])setSid(students[0].id)},[students]);
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <div className="flex gap-2 mb-4">
+        <select value={sid} onChange={e=>setSid(e.target.value)} className="border p-2">
+          {students.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <select value={score} onChange={e=>setScore(Number(e.target.value))} className="border p-2">
+          {[1,2,3,4,5].map(n=> <option key={n} value={n}>Score {n}</option>)}
+        </select>
+        <input className="border p-2 w-24" type="number" value={points} onChange={e=>setPoints(Number(e.target.value))} />
+        <input className="border p-2 flex-1" placeholder="Note" value={note} onChange={e=>setNote(e.target.value)} />
+        <button className="bg-blue-600 text-white p-2 rounded" onClick={()=>{if(!sid) return alert('Select student'); addBehaviour(sid,score,points,note); setNote(''); setPoints(0);}}>Add</button>
+      </div>
+      <div>
+        <h4 className="font-semibold mb-2">Recent behaviour events</h4>
+        <ul>
+          {behaviour.map(b=>{
+            const name=students.find(s=>s.id===b.studentId)?.name||b.studentId;
+            return <li key={b.id} className="border-t py-1">{name} — score {b.score} ({b.pointsDelta||0}) — {b.note}</li>
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function DetentionsPage({detentionLog,markDetentionServed}){
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-2">Detention Log</h3>
+      <table className="w-full text-left">
+        <thead><tr><th>Student</th><th>Reason</th><th>Time</th><th>Served</th><th></th></tr></thead>
+        <tbody>
+          {detentionLog.map(d=> (
+            <tr key={d.id} className="border-t">
+              <td>{d.name}</td>
+              <td>{d.reason}</td>
+              <td>{d.time}</td>
+              <td>{d.served?"Yes":"No"}</td>
+              <td>{!d.served && <button className="text-green-600" onClick={()=>markDetentionServed(d.id)}>Mark served</button>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function GradesPage({students,grades,recordGrade}){
+  const [sid,setSid]=useState(students[0]?.id||"");
+  const [sub,setSub]=useState('Math');
+  const [mark,setMark]=useState('');
+  useEffect(()=>{if(!sid && students[0])setSid(students[0].id)},[students]);
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <div className="flex gap-2 mb-4">
+        <select value={sid} onChange={e=>setSid(e.target.value)} className="border p-2">
+          {students.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <input className="border p-2" value={sub} onChange={e=>setSub(e.target.value)} />
+        <input className="border p-2 w-24" value={mark} onChange={e=>setMark(e.target.value)} />
+        <button className="bg-blue-600 text-white p-2 rounded" onClick={()=>{recordGrade(sid,sub,mark); setMark('');}}>Save</button>
+      </div>
+      <div>
+        <h4 className="font-semibold mb-2">Grades</h4>
+        <table className="w-full text-left">
+          <thead><tr><th>Student</th><th>Subject</th><th>Mark</th></tr></thead>
+          <tbody>
+            {students.map(s=>{
+              const gs=grades[s.id]||{};
+              return Object.keys(gs).map(subj=> (
+                <tr key={s.id+subj} className="border-t"><td>{s.name}</td><td>{subj}</td><td>{gs[subj]}</td></tr>
+              ));
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TimetablePage({timetable,updateLesson}){
+  const days=Object.keys(timetable||{});
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-2">Timetable</h3>
+      <div className="grid grid-cols-1 gap-4">
+        {days.map(day=> (
+          <div key={day} className="border p-2">
+            <div className="font-semibold mb-2">{day}</div>
+            <div className="grid grid-cols-5 gap-2">
+              {Object.entries(timetable[day]).map(([period,lesson])=> (
+                <div key={period}>
+                  <div className="text-sm font-medium">{period}</div>
+                  <input className="border p-1 w-40" value={lesson} onChange={e=>updateLesson(day,period,e.target.value)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReportsPage({exportAttendanceCSV,exportBehaviourCSV,exportDetentionsCSV,students,attendance,behaviour}){
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-2">Reports & Exports</h3>
+      <div className="flex gap-2 mb-4">
+        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportAttendanceCSV}>Export Attendance CSV</button>
+        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportBehaviourCSV}>Export Behaviour CSV</button>
+        <button className="bg-gray-700 text-white p-2 rounded" onClick={exportDetentionsCSV}>Export Detentions CSV</button>
+      </div>
+      <div>
+        <h4 className="font-semibold">Quick overview</h4>
+        <div>Students: {students.length}</div>
+        <div>Behaviour events: {behaviour.length}</div>
+        <div>Attendance days logged: {Object.keys(attendance).length}</div>
+      </div>
+    </div>
+  );
+}
+
+function PAPage({announcement,setAnnouncement}){
+  const [txt,setTxt]=useState(announcement||"");
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-2">Public Address / Announcement</h3>
+      <textarea className="w-full border p-2 mb-2" rows={3} value={txt} onChange={e=>setTxt(e.target.value)} />
+      <div className="flex gap-2">
+        <button className="bg-blue-600 text-white p-2 rounded" onClick={()=>{setAnnouncement(txt);alert('Announcement sent')}}>Send Announcement</button>
+        <button className="bg-yellow-500 p-2 rounded" onClick={()=>{const audio=new Audio('https://www.soundjay.com/button/beep-07.wav'); audio.play();}}>Play Bell</button>
+      </div>
+    </div>
+  );
+}
+
+function DashboardPage({students,behaviour,detentionLog,attendance}){
+  const totalStudents=students.length;
+  const detentions=detentionLog.filter(d=>!d.served).length;
+  const events=behaviour.length;
+  const attendanceDays=Object.keys(attendance).length;
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <div className="bg-white p-4 rounded shadow">Students: <strong>{totalStudents}</strong></div>
+      <div className="bg-white p-4 rounded shadow">Open detentions: <strong>{detentions}</strong></div>
+      <div className="bg-white p-4 rounded shadow">Behaviour events: <strong>{events}</strong></div>
+      <div className="bg-white p-4 rounded shadow col-span-3">Attendance days recorded: <strong>{attendanceDays}</strong></div>
+    </div>
+  );
+}
 
 ReactDOM.createRoot(document.getElementById("root")).render(<BromcomFullMIS />);
