@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bromcom-Style MIS</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -9,20 +10,87 @@
   <div id="root"></div>
 
   <!-- React / ReactDOM (UMD) -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <!-- Recharts UMD -->
-  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
-  <!-- Babel for in-browser JSX transpile (dev only) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- App code (transpiled by Babel) -->
-  <script type="text/babel" src="docs/app.js"></script>
-  <script>
-    window.addEventListener('error', (e) => {
-      console.error('Error:', e.error);
-      document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px; font-family: monospace;">Error loading app:<br/>' + e.error?.message + '</div>';
-    });
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function LoginPage({ onLogin }) {
+      const [u, setU] = useState("");
+      const [p, setP] = useState("");
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-blue-800">
+          <div className="bg-white p-8 rounded shadow-lg w-96">
+            <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">AegisSchool MIS</h1>
+            <input className="w-full border p-2 mb-2" placeholder="Username" value={u} onChange={e=>setU(e.target.value)} />
+            <input className="w-full border p-2 mb-4" placeholder="Password" type="password" value={p} onChange={e=>setP(e.target.value)} />
+            <button className="w-full bg-blue-600 text-white p-2 rounded font-semibold" onClick={()=>onLogin(u,p)}>Login</button>
+            <div className="mt-4 text-sm text-gray-600 text-center">Demo: admin / admin</div>
+          </div>
+        </div>
+      );
+    }
+
+    function Dashboard() {
+      const [page, setPage] = useState("dashboard");
+      const [students, setStudents] = useState([]);
+      const [name, setName] = useState("");
+      
+      return (
+        <div className="flex">
+          <div className="w-64 bg-blue-700 text-white h-screen p-4">
+            <div className="text-2xl font-bold mb-4">AegisSchool</div>
+            {["dashboard","students","attendance","behaviour"].map(pn=>
+              <button key={pn} className={`w-full text-left p-2 rounded mb-1 ${page===pn?"bg-blue-900":""}`} onClick={()=>setPage(pn)}>
+                {pn.charAt(0).toUpperCase()+pn.slice(1)}
+              </button>
+            )}
+          </div>
+          <div className="flex-1 p-6 bg-gray-100">
+            <h1 className="text-3xl font-bold mb-4">{page.charAt(0).toUpperCase()+page.slice(1)}</h1>
+            {page === "dashboard" && (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded shadow">Students: <strong>{students.length}</strong></div>
+              </div>
+            )}
+            {page === "students" && (
+              <div className="bg-white p-4 rounded shadow">
+                <div className="flex gap-2 mb-4">
+                  <input className="border p-2 flex-1" placeholder="Student name" value={name} onChange={e=>setName(e.target.value)} />
+                  <button className="bg-blue-600 text-white p-2 rounded" onClick={()=>{setStudents([...students,{id:Date.now(),name}]);setName("");}}>Add</button>
+                </div>
+                <ul>
+                  {students.map(s=><li key={s.id} className="p-2 border-t">{s.name}</li>)}
+                </ul>
+              </div>
+            )}
+            {page !== "dashboard" && page !== "students" && (
+              <div className="bg-white p-4 rounded shadow text-gray-500">
+                {page} page coming soon...
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [logged, setLogged] = useState(false);
+      const handleLogin = (u, p) => {
+        if ((u === "admin" && p === "admin") || (u && p)) {
+          setLogged(true);
+        } else {
+          alert("Invalid credentials");
+        }
+      };
+      return logged ? <Dashboard /> : <LoginPage onLogin={handleLogin} />;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
   </script>
 </body>
 </html>
