@@ -282,11 +282,11 @@
       };
 
       return e('div',{className:"flex h-screen"},
-        e('div',{className:"w-64 bg-blue-700 text-white p-4 overflow-auto flex flex-col"},
-          e('div',{className:"text-2xl font-bold mb-4"},"AegisSchool"),
-          e('div',{className:"space-y-1 flex-1"},
+        e('div',{className:"w-80 bg-blue-700 text-white p-3 overflow-y-auto flex flex-col"},
+          e('div',{className:"text-2xl font-bold mb-3 pb-3 border-b border-blue-600"},"AegisSchool"),
+          e('div',{className:"space-y-0.5 flex-1"},
             ["dashboard","students","attendance","behaviour","detentions","grades","timetable","reports","pa"].map(pn=>
-              e('button',{key:pn,className:`w-full text-left p-2 rounded mb-1 text-sm transition ${page===pn?"bg-blue-900":"hover:bg-blue-600"}`,onClick:()=>setPage(pn)},
+              e('button',{key:pn,className:`w-full text-left px-3 py-2 rounded text-xs transition whitespace-nowrap ${page===pn?"bg-blue-900":"hover:bg-blue-600"}`,onClick:()=>setPage(pn)},
                 {dashboard:"📊 Dashboard",students:"👥 Students",attendance:"📍 Attendance",behaviour:"⚡ Behaviour",detentions:"🔒 Detentions",grades:"📈 Grades",timetable:"📅 Timetable",reports:"📋 Reports",pa:"📢 PA"}[pn]
               )
             )
